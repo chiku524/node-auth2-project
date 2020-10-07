@@ -1,16 +1,15 @@
-const express = require("express")
-const bcrypt = require("bcryptjs")
-const jwt = require("jsonwebtoken")
-const User = require("./user-model")
-const userMiddleware = require("./user-Middleware")
-
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const Users = require("./users-model.js");
+const restrictedMiddleware = require("../auth/restricted-middleware")
 
 const router = express.Router()
 
 
-router.get("/users",userMiddleware.restrict("admin"), async (req,res,next)=>{
+router.get("/", restrictedMiddleware.restrict("admin"), async (req,res,next)=>{
     try{
-      res.json(await User.find())
+      res.json(await Users.find())
     }catch(err){
         next(err)
     }
@@ -18,8 +17,8 @@ router.get("/users",userMiddleware.restrict("admin"), async (req,res,next)=>{
 
 router.post("/register", async (req,res,next)=>{
     try {
-		const { username, password,department } = req.body
-		const user = await User.findBy({ username }).first()
+		const { username, password, department } = req.body
+		const user = await Users.findBy({ username }).first()
 
 		if (user) {
 			return res.status(409).json({
@@ -27,7 +26,7 @@ router.post("/register", async (req,res,next)=>{
 			})
 		}
 
-		const newUser = await User.add({
+		const newUser = await Users.add({
 			username,
             password: await bcrypt.hash(password, 15),
            department
@@ -42,7 +41,7 @@ router.post("/register", async (req,res,next)=>{
 router.post("/login", async (req,res,next)=>{
     try {
 		const { username, password } = req.body
-		const user = await User.findBy({ username }).first()
+		const user = await Users.findBy({ username }).first()
 
 		if (!user) {
 			return res.status(401).json({
@@ -50,9 +49,9 @@ router.post("/login", async (req,res,next)=>{
 			})
 		}
 
-		const passwordV = await bcrypt.compare(password, user.password)
+		const passwordValid = await bcrypt.compare(password, user.password)
 
-		if(!passwordV){
+		if(!passwordValid){
 			return res.status(401).json({
 				message: "Invalid Password",
 			})
@@ -73,5 +72,18 @@ router.post("/login", async (req,res,next)=>{
 	}
 })
 
+router.get('/logout', (req, res) => {
+    if(req.session) {
+        req.session.destroy(error => {
+            if(error) {
+                res.status(400).json({message: "could not log out: ", why: error})
+            } else {
+                res.status(200).json({message: 'successfully logged out'});
+            }
+        })
+    } else {
+        res.end();
+    }
+})
 
-module.exports = router 
+module.exports = router;

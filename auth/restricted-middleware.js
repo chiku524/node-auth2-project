@@ -4,16 +4,14 @@ function restrict(role) {
     const roles = ['basic', 'admin', 'ceo'];
 
     return async (req, res, next) => {
+        console.log(process.env.JWT_SECRET)
+        
         const auth = {
-            message: 'invalid entry'
+            message: 'Please sign in'
         }
 
         try {
             const token = req.headers.authorization;
-
-            if(!token) {
-                return res.status(401).json(auth);
-            }
 
             jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
                 if(error) {
